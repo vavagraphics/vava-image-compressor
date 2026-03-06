@@ -1,0 +1,50 @@
+{
+  "name": "vava-image-compressor",
+  "version": "1.0.0",
+  "description": "Web Image Compressor & Converter by VAVA Graphics",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build:installer": "node scripts/fix-wincosesign.js && electron-builder --win nsis",
+    "build:portable": "electron-packager . \"Web Image Compressor\" --platform=win32 --arch=x64 --out=dist --overwrite --ignore=node_modules --ignore=dist --ignore=build --ignore=scripts",
+    "zip": "node scripts/zip-dist.js"
+  },
+  "devDependencies": {
+    "@electron/packager": "^19.0.5",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.vavagraphics.web-image-compressor",
+    "productName": "Web Image Compressor",
+    "copyright": "Copyright 2025 VAVA Graphics",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "src/**/*",
+      "electron/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "assets/vava-logo.ico",
+      "sign": false,
+      "signingHashAlgorithms": []
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Web Image Compressor",
+      "artifactName": "Web-Image-Compressor-Setup.exe",
+      "installerIcon": "assets/vava-logo.ico",
+      "uninstallerIcon": "assets/vava-logo.ico"
+    }
+  }
+}

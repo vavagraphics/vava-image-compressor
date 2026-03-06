@@ -1,0 +1,91 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Mac (x64 + arm64)
+        run: |
+          npx electron-packager . "Web Image Compressor" --platform=darwin --arch=x64 --out=dist --overwrite --ignore="node_modules|dist|build|scripts|\.github"
+          npx electron-packager . "Web Image Compressor" --platform=darwin --arch=arm64 --out=dist --overwrite --ignore="node_modules|dist|build|scripts|\.github"
+          cd dist
+          zip -r "Web-Image-Compressor-Mac-Intel.zip" "Web Image Compressor-darwin-x64"
+          zip -r "Web-Image-Compressor-Mac-AppleSilicon.zip" "Web Image Compressor-darwin-arm64"
+
+      - name: Upload Mac artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-builds
+          path: |
+            dist/Web-Image-Compressor-Mac-Intel.zip
+            dist/Web-Image-Compressor-Mac-AppleSilicon.zip
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Python & Pillow
+        run: pip install Pillow
+
+      - name: Generate ICO
+        run: python build/create-icon.py
+
+      - name: Build Windows installer
+        run: node scripts/fix-wincosesign.js && npx electron-builder --win nsis
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: dist/Web-Image-Compressor-Setup.exe
+
+  release:
+    needs: [build-mac, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            mac-builds/Web-Image-Compressor-Mac-Intel.zip
+            mac-builds/Web-Image-Compressor-Mac-AppleSilicon.zip
+            windows-build/Web-Image-Compressor-Setup.exe
+          generate_release_notes: false
+          body: |
+            ## VAVA Web Image Compressor
+
+            Resize, compress, and convert images to WebP for web use.
+
+            ### Downloads
+            - **Windows**: `Web-Image-Compressor-Setup.exe` — NSIS installer
+            - **Mac (Intel)**: `Web-Image-Compressor-Mac-Intel.zip` — for Intel Macs (2019 and earlier)
+            - **Mac (Apple Silicon)**: `Web-Image-Compressor-Mac-AppleSilicon.zip` — for M1/M2/M3 Macs
